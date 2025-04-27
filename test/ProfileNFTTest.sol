@@ -2,7 +2,8 @@
 pragma solidity ^0.8.20;
 
 // Mock imports
-import { ProfileNFTCore } from "../contracts/ProfileNFTCore.sol";
+import { ProfileHub } from "../contracts/ProfileHub.sol";
+import { ProfileLink } from "../contracts/ProfileLink.sol";
 
 // OApp imports
 import { IOAppOptionsType3, EnforcedOptionParam } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
@@ -23,10 +24,13 @@ import "forge-std/console.sol";
 import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 contract ProfileNFTTest is TestHelperOz5 {
+    using OptionsBuilder for bytes;
+
     uint32 private aEid = 1;
     uint32 private bEid = 2;
 
-    ProfileNFTCore private profileNFTCore;
+    ProfileHub private profileHub;
+    ProfileLink private profileLink;
 
     address private userA = address(0x1);
     address private userB = address(0x2);
@@ -37,28 +41,57 @@ contract ProfileNFTTest is TestHelperOz5 {
         vm.deal(userB, 1000 ether);
 
         super.setUp();
-        setUpEndpoints(1, LibraryType.UltraLightNode);
+        setUpEndpoints(2, LibraryType.UltraLightNode);
 
-        profileNFTCore = ProfileNFTCore(
+        profileHub = ProfileHub(
             _deployOApp(
-                type(ProfileNFTCore).creationCode,
-                abi.encode("profileNFTCore", "profileNFTCore", address(endpoints[aEid]), address(this))
+                type(ProfileHub).creationCode,
+                abi.encode("profileHub", "profileHub", address(endpoints[aEid]), address(this))
+            )
+        );
+
+        profileLink = ProfileLink(
+            _deployOApp(
+                type(ProfileLink).creationCode,
+                abi.encode("profileLink", "profileLink", address(endpoints[bEid]), address(this))
             )
         );
 
         // config and wire the onfts
-        address[] memory onfts = new address[](1);
-        onfts[0] = address(profileNFTCore);
+        address[] memory onfts = new address[](2);
+        onfts[0] = address(profileHub);
+        onfts[1] = address(profileLink);
         this.wireOApps(onfts);
 
         // mint tokens
-        profileNFTCore.mint(userA);
+        profileHub.mint(userA);
     }
 
     function test_constructor() public view {
-        assertEq(profileNFTCore.owner(), address(this));
-        assertEq(profileNFTCore.balanceOf(userA), 1);
-        assertEq(profileNFTCore.ownerOf(1), userA);
-        assertEq(profileNFTCore.token(), address(profileNFTCore));
+        assertEq(profileHub.owner(), address(this));
+        assertEq(profileLink.owner(), address(this));
+
+        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileLink.balanceOf(userB), 0);
+
+        assertEq(profileHub.token(), address(profileHub));
+        assertEq(profileLink.token(), address(profileLink));
+    }
+
+    function test_send_onft721() public {
+        uint256 tokenId = 1;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        SendParam memory sendParam = SendParam(bEid, addressToBytes32(userB), tokenId, options, "", "");
+        MessagingFee memory fee = profileHub.quoteSend(sendParam, false);
+
+        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileLink.balanceOf(userB), 0);
+
+        vm.prank(userA);
+        profileHub.send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+        verifyPackets(bEid, addressToBytes32(address(profileLink)));
+
+        assertEq(profileHub.balanceOf(userA), 0);
+        assertEq(profileLink.balanceOf(userB), 1);
     }
 }
