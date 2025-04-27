@@ -93,8 +93,8 @@ contract ProfileTest is TestHelperOz5 {
         verifyPackets(bEid, addressToBytes32(address(profileLink)));
 
         assertEq(profileHub.balanceOf(userA), 1);
-        assertEq(profileHub.isFrozen(tokenId), true);
         assertEq(profileLink.balanceOf(userB), 1);
+        assertEq(profileHub.isFrozen(tokenId), true);
     }
 
     function test_profile_freeze() public {
@@ -114,5 +114,36 @@ contract ProfileTest is TestHelperOz5 {
         vm.prank(userA);
         vm.expectRevert();
         profileHub.transferFrom(userA, userB, tokenId);
+    }
+
+    function test_receive_profile_on_hub() public {
+        uint256 tokenId = 1;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        SendParam memory sendParam = SendParam(bEid, addressToBytes32(userB), tokenId, options, "", "");
+        MessagingFee memory fee = profileHub.quoteSend(sendParam, false);
+
+        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileLink.balanceOf(userB), 0);
+        assertEq(profileHub.isFrozen(tokenId), false);
+
+        vm.prank(userA);
+        profileHub.send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+        verifyPackets(bEid, addressToBytes32(address(profileLink)));
+
+        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileLink.balanceOf(userB), 1);
+        assertEq(profileHub.isFrozen(tokenId), true);
+
+        bytes memory optionsB = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        SendParam memory sendParamB = SendParam(aEid, addressToBytes32(userA), tokenId, optionsB, "", "");
+        MessagingFee memory feeB = profileLink.quoteSend(sendParamB, false);
+
+        vm.prank(userB);
+        profileLink.send{ value: feeB.nativeFee }(sendParamB, feeB, payable(address(this)));
+        verifyPackets(aEid, addressToBytes32(address(profileHub)));
+
+        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileLink.balanceOf(userB), 0);
+        assertEq(profileHub.isFrozen(tokenId), false);
     }
 }
