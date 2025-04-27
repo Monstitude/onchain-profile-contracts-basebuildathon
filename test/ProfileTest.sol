@@ -23,7 +23,7 @@ import "forge-std/console.sol";
 // DevTools imports
 import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
-contract ProfileNFTTest is TestHelperOz5 {
+contract ProfileTest is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
     uint32 private aEid = 1;
@@ -78,7 +78,7 @@ contract ProfileNFTTest is TestHelperOz5 {
         assertEq(profileLink.token(), address(profileLink));
     }
 
-    function test_send_onft721() public {
+    function test_send_profile() public {
         uint256 tokenId = 1;
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
         SendParam memory sendParam = SendParam(bEid, addressToBytes32(userB), tokenId, options, "", "");
@@ -86,12 +86,33 @@ contract ProfileNFTTest is TestHelperOz5 {
 
         assertEq(profileHub.balanceOf(userA), 1);
         assertEq(profileLink.balanceOf(userB), 0);
+        assertEq(profileHub.isFrozen(tokenId), false);
 
         vm.prank(userA);
         profileHub.send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
         verifyPackets(bEid, addressToBytes32(address(profileLink)));
 
-        assertEq(profileHub.balanceOf(userA), 0);
+        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileHub.isFrozen(tokenId), true);
         assertEq(profileLink.balanceOf(userB), 1);
+    }
+
+    function test_profile_freeze() public {
+        uint256 tokenId = 1;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        SendParam memory sendParam = SendParam(bEid, addressToBytes32(userB), tokenId, options, "", "");
+        MessagingFee memory fee = profileHub.quoteSend(sendParam, false);
+
+        assertEq(profileHub.isFrozen(tokenId), false);
+
+        vm.prank(userA);
+        profileHub.send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+        verifyPackets(bEid, addressToBytes32(address(profileLink)));
+
+        assertEq(profileHub.isFrozen(tokenId), true);
+
+        vm.prank(userA);
+        vm.expectRevert();
+        profileHub.transferFrom(userA, userB, tokenId);
     }
 }
