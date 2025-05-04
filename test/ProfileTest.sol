@@ -134,6 +134,7 @@ contract ProfileTest is TestHelperOz5 {
         assertEq(profileHub.balanceOf(userB), 1);
         assertEq(profileLink.balanceOf(userB), 1);
         assertEq(profileHub.isFrozen(tokenId), true);
+        assertEq(profileLink.ownerOf(tokenId), userB);
 
         bytes memory optionsB = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
         SendParam memory sendParamB = SendParam(aEid, addressToBytes32(userA), tokenId, optionsB, "", "");
@@ -147,5 +148,8 @@ contract ProfileTest is TestHelperOz5 {
         assertEq(profileHub.balanceOf(userB), 0);
         assertEq(profileLink.balanceOf(userB), 0);
         assertEq(profileHub.isFrozen(tokenId), false);
+
+        vm.expectRevert();
+        assertEq(profileLink.ownerOf(tokenId), address(0));
     }
 }
