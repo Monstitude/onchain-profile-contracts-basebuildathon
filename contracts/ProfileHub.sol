@@ -62,8 +62,10 @@ contract ProfileHub is ONFT721 {
         _frozen[_tokenId] = true;
     }
 
-    function _credit(address /*_to*/, uint256 _tokenId, uint32 /*_srcEid*/) internal virtual override {
+    function _credit(address _to, uint256 _tokenId, uint32 /*_srcEid*/) internal virtual override {
         _frozen[_tokenId] = false;
+
+        super._update(_to, _tokenId, address(0));
     }
 
     function _update(address to, uint256 tokenId, address auth) internal virtual override returns (address) {
