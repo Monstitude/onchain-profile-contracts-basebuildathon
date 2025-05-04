@@ -26,6 +26,24 @@ contract ProfileHub is ONFT721 {
         _mint(_to, newProfileId);
     }
 
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    ) external payable virtual override returns (MessagingReceipt memory msgReceipt) {
+        _debit(msg.sender, _sendParam.tokenId, _sendParam.dstEid);
+
+        if (address(uint160(uint256(_sendParam.to))) != msg.sender) {
+            super._update(address(uint160(uint256(_sendParam.to))), _sendParam.tokenId, msg.sender);
+        }
+
+        (bytes memory message, bytes memory options) = _buildMsgAndOptions(_sendParam);
+
+        // @dev Sends the message to the LayerZero Endpoint, returning the MessagingReceipt.
+        msgReceipt = _lzSend(_sendParam.dstEid, message, options, _fee, _refundAddress);
+        emit ONFTSent(msgReceipt.guid, _sendParam.dstEid, msg.sender, _sendParam.tokenId);
+    }
+
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                            VIEW                            */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
