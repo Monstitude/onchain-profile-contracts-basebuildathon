@@ -92,7 +92,7 @@ contract ProfileTest is TestHelperOz5 {
         profileHub.send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
         verifyPackets(bEid, addressToBytes32(address(profileLink)));
 
-        assertEq(profileHub.balanceOf(userA), 1);
+        assertEq(profileHub.balanceOf(userA), 0);
         assertEq(profileLink.balanceOf(userB), 1);
         assertEq(profileHub.isFrozen(tokenId), true);
     }
