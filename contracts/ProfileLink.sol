@@ -23,6 +23,24 @@ contract ProfileLink is ONFT721 {
         address _delegate
     ) ONFT721(_name, _symbol, _lzEndpoint, _delegate) {}
 
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                          INTERNAL                          */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    function _determineMessageType(bytes memory extractedData) internal pure returns (ProfileLib.MessageType) {
+        // Extract the first byte or use a specific logic for type determination
+        uint8 typeByte = uint8(extractedData[0]); // Get the first byte
+        if (typeByte == 0) {
+            return ProfileLib.MessageType.NFT_TRANSFER;
+        } else {
+            return ProfileLib.MessageType.CREATE_PROFILE;
+        }
+    }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                         OVERRIDES                          */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
     /**
      * @dev Internal function to build the message and options.
      * @param _sendParam The parameters for the send() operation.
@@ -87,17 +105,6 @@ contract ProfileLink is ONFT721 {
             }
 
             emit ONFTReceived(_guid, _origin.srcEid, toAddress, tokenId);
-        }
-    }
-
-    // Function to determine the message type from the first 32 bytes
-    function _determineMessageType(bytes memory extractedData) public pure returns (ProfileLib.MessageType) {
-        // Extract the first byte or use a specific logic for type determination
-        uint8 typeByte = uint8(extractedData[0]); // Get the first byte
-        if (typeByte == 0) {
-            return ProfileLib.MessageType.NFT_TRANSFER;
-        } else {
-            return ProfileLib.MessageType.CREATE_PROFILE;
         }
     }
 }

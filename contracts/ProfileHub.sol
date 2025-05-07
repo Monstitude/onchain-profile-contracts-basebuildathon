@@ -52,7 +52,19 @@ contract ProfileHub is ONFT721 {
         emit ONFTSent(msgReceipt.guid, _sendParam.dstEid, msg.sender, _sendParam.tokenId);
     }
 
-    function _determineMessageType(bytes memory extractedData) public pure returns (ProfileLib.MessageType) {
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                            VIEW                            */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    function isFrozen(uint256 _tokenId) public view returns (bool) {
+        return _frozen[_tokenId];
+    }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                          INTERNAL                          */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    function _determineMessageType(bytes memory extractedData) internal pure returns (ProfileLib.MessageType) {
         // Extract the first byte or use a specific logic for type determination
         uint8 typeByte = uint8(extractedData[0]); // Get the first byte
         if (typeByte == 0) {
@@ -60,14 +72,6 @@ contract ProfileHub is ONFT721 {
         } else {
             return ProfileLib.MessageType.CREATE_PROFILE;
         }
-    }
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                            VIEW                            */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    function isFrozen(uint256 _tokenId) public view returns (bool) {
-        return _frozen[_tokenId];
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
