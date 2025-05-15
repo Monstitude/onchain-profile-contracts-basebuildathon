@@ -64,7 +64,7 @@ contract ProfileTest is TestHelperOz5 {
         this.wireOApps(onfts);
 
         // mint tokens
-        profileHub.mint(userA);
+        profileHub.createProfile(userA, "test");
     }
 
     function test_constructor() public view {

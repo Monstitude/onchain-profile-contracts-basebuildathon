@@ -14,8 +14,6 @@ contract ProfileLink is ONFT721 {
     using ONFT721MsgCodec for bytes;
     using ONFT721MsgCodec for bytes32;
 
-    uint32 mainDestinationId = 1;
-
     constructor(
         string memory _name,
         string memory _symbol,
@@ -82,15 +80,15 @@ contract ProfileLink is ONFT721 {
         address /*_executor*/, // @dev unused in the default implementation.
         bytes calldata /*_extraData*/ // @dev unused in the default implementation.
     ) internal virtual override {
-        // Extract the first 32 bytes (Message Type)
-        address toAddress = bytes32(_message[1:33]).bytes32ToAddress();
-        uint256 tokenId = uint256(bytes32(_message[33:65]));
-
         // Determine the message type based on the extracted data
         ProfileLib.MessageType messageType = _determineMessageType(_message);
 
         // Use the extracted message type for further logic
         if (messageType == ProfileLib.MessageType.NFT_TRANSFER) {
+            // Extract the first 32 bytes (Message Type)
+            address toAddress = bytes32(_message[1:33]).bytes32ToAddress();
+            uint256 tokenId = uint256(bytes32(_message[33:65]));
+
             _credit(toAddress, tokenId, _origin.srcEid);
 
             if (_message.isComposed()) {

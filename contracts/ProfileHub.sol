@@ -8,11 +8,12 @@ import { ONFT721MsgCodec } from "@layerzerolabs/onft-evm/contracts/onft721/libs/
 import { ONFTComposeMsgCodec } from "@layerzerolabs/onft-evm/contracts/libs/ONFTComposeMsgCodec.sol";
 import { IOAppMsgInspector } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppMsgInspector.sol";
 import { ProfileLib } from "./ProfileLib.sol";
+import { Username } from "./Username.sol";
 import { Origin } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 error ProfileFrozen(uint256 tokenId, address sender);
 
-contract ProfileHub is ONFT721 {
+contract ProfileHub is Username, ONFT721 {
     using ONFT721MsgCodec for bytes;
     using ONFT721MsgCodec for bytes32;
 
@@ -27,11 +28,14 @@ contract ProfileHub is ONFT721 {
         address _delegate
     ) ONFT721(_name, _symbol, _lzEndpoint, _delegate) {}
 
-    function mint(address _to) public {
+    function createProfile(address _to, string calldata username) public {
+        require(balanceOf(_to) == 0, "Profile already created");
+
         _tokenIds++;
         uint256 newProfileId = _tokenIds;
 
         _mint(_to, newProfileId);
+        registerUsername(_to, username);
     }
 
     function send(
@@ -119,15 +123,14 @@ contract ProfileHub is ONFT721 {
         address /*_executor*/, // @dev unused in the default implementation.
         bytes calldata /*_extraData*/ // @dev unused in the default implementation.
     ) internal virtual override {
-        // Extract the first 32 bytes (Message Type)
-        address toAddress = bytes32(_message[1:33]).bytes32ToAddress();
-        uint256 tokenId = uint256(bytes32(_message[33:65]));
-
         // Determine the message type based on the extracted data
         ProfileLib.MessageType messageType = _determineMessageType(_message);
 
         // Use the extracted message type for further logic
         if (messageType == ProfileLib.MessageType.NFT_TRANSFER) {
+            address toAddress = bytes32(_message[1:33]).bytes32ToAddress();
+            uint256 tokenId = uint256(bytes32(_message[33:65]));
+
             _credit(toAddress, tokenId, _origin.srcEid);
 
             if (_message.isComposed()) {
